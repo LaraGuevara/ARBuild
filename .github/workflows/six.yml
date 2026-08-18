@@ -26,21 +26,11 @@ jobs:
         with:
           xcode-version: '16.0'
 
-      - name: Build UnityFramework and Unsigned IPA
+      - name: Build Unsigned IPA
         run: |
           cd build/
           XCODEPROJ=$(find . -maxdepth 2 -name "*.xcodeproj" | head -n 1)
           echo "Building project: $XCODEPROJ"
-
-          xcodebuild build \
-            -project "$XCODEPROJ" \
-            -target UnityFramework \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            OTHER_LDFLAGS="-ld64"
 
           xcodebuild archive \
             -project "$XCODEPROJ" \
@@ -51,7 +41,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            OTHER_LDFLAGS="-ld64"
+            ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES
 
           mkdir -p Payload
           cp -r build/Unity-iPhone.xcarchive/Products/Applications/*.app Payload/
