@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-15
+    runs-on: macos-14
 
     steps:
       - name: Checkout Repository
@@ -22,14 +22,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Xcode 16
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16.0'
-
-      - name: Install iOS 18 Platform SDK Runtime
+      - name: Select Xcode 16.2
         run: |
-          sudo xcodebuild -downloadPlatform iOS
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          # Initialize simulator service daemon
+          xcrun simctl list > /dev/null
 
       - name: Build Unsigned IPA
         run: |
