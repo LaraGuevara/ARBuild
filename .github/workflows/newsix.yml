@@ -1,0 +1,61 @@
+name: Build U6 iOS Xcode Project
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Zip from Latest Release
+        run: |
+          mkdir -p build
+          gh release download --pattern "*.zip" --dir build/
+          unzip -q build/*.zip -d build/
+          chmod -R +x build/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Select Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          # Initialize simulator service daemon
+          xcrun simctl list > /dev/null
+
+      - name: Build Unsigned IPA
+        run: |
+          cd build/
+          XCODEPROJ=$(find . -maxdepth 2 -name "*.xcodeproj" | head -n 1)
+          echo "Building project: $XCODEPROJ"
+
+          xcodebuild archive \
+            -project "$XCODEPROJ" \
+            -scheme Unity-iPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Unity-iPhone.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES
+
+          mkdir -p Payload
+          cp -R build/Unity-iPhone.xcarchive/Products/Applications/*.app Payload/
+          
+          find Payload/ -name "_CodeSignature" -exec rm -rf {} + 2>/dev/null || true
+          
+          zip -qry ARApp.ipa Payload/
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARApp-iOS-Build
+          path: build/ARApp.ipa
+          retention-days: 7
